@@ -4,7 +4,6 @@ from extension import bcrypt
 from db import get_connection
 import secrets
 from email_service import send_verification_email
-import resend
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -63,7 +62,7 @@ def register():
         conn.commit()
         cursor.close()
 
-        verification_link = (f"https://flask-auth-endpoint.onrender.com/api/auth/verify-email/{verification_token}")
+        verification_link = (f"https://flask-project-3-36r4.onrender.com/api/auth/verify-email/{verification_token}")
 
         html = f""" <h2>Welcome {fullname}!</h2>
                      <p>Click below to verify your account.</p>
