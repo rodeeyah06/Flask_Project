@@ -65,17 +65,11 @@ def register():
 
         verification_link = (f"https://flask-auth-endpoint.onrender.com/api/auth/verify-email/{verification_token}")
 
-        r = resend.Emails.send({
-        "from": "onboarding@resend.dev",
-         "to": "rodiyahmusa@gmail.com",
-         "subject": "Hello World",
-         "html": f"""
-            Hello{fullname},
-            Thank you for registering
-            Click the link below to verify email
-            {verification_link}
-            """
-        })
+        html = f""" <h2>Welcome {fullname}!</h2>
+                     <p>Click below to verify your account.</p>
+                      <a href={verification_link}>Verify Account</a>
+                                                        """
+        send_verification_email(email, "Verify Email", html)
 
 # send_verification_email(email, fullname, verification_link)
         return jsonify({
