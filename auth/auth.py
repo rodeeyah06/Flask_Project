@@ -4,6 +4,7 @@ from extension import bcrypt
 from db import get_connection
 import secrets
 from email_service import send_verification_email
+import resend
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -63,7 +64,20 @@ def register():
         cursor.close()
 
         verification_link = (f"https://flask-auth-endpoint.onrender.com/api/auth/verify-email/{verification_token}")
-        send_verification_email(email, fullname, verification_link)
+
+        r = resend.Emails.send({
+        "from": "onboarding@resend.dev",
+         "to": "rodiyahmusa@gmail.com",
+         "subject": "Hello World",
+         "html": f"""
+            Hello{fullname},
+            Thank you for registering
+            Click the link below to verify email
+            {verification_link}
+            """
+        })
+
+# send_verification_email(email, fullname, verification_link)
         return jsonify({
             "success": True,
             "message": "User registered successfully."
@@ -87,41 +101,44 @@ def register():
 
 @auth_bp.route("/verify-email/<token>", methods=["GET"])
 def verify_email(token):
-    cursor = None
-    # conn = None
-    cursor = get_connection().cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT id FROM Users WHERE verification_token=%s
-        """, (token)
-    )
+    try:
+        cursor.execute("""
+                       SELECT id
+                       FROM Users
+                       WHERE verification_token = %s
+                       """, (token,))
 
-    user = cursor.fetchone()
+        user = cursor.fetchone()
 
-    if not user:
-        cursor.close()
+        if not user:
+            return jsonify({
+                "success": False,
+                "message": "Invalid verification link."
+            }), 400
+
+        cursor.execute("""
+                       UPDATE Users
+                       SET
+                           is_verified = TRUE,
+                           verification_token = NULL
+                       WHERE id = %s
+                       """, (user["id"],))
+
+        # print(cursor.fetchone())
+
+        conn.commit()
+
         return jsonify({
-            "success": False,
-            "message": "Invalid verification link."
-        }), 400
+            "success": True,
+            "message": "Email verified successfully."
+        }), 200
 
-    cursor.execute(
-        """
-        UPDATE Users
-        SET
-            is_verified = TRUE,
-            verification_token = NULL
-        WHERE id=%s
-        """, (user["id"],)
-    )
-    get_connection().commit()
-    cursor.close()
-
-    return jsonify({
-        "success": True,
-        "message": "Email verified successfully."
-    })
+    finally:
+        cursor.close()
+        conn.close()
 
 @auth_bp.route("/home", methods=["GET"])
 def home():
